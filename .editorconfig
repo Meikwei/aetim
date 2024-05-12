@@ -1,0 +1,27 @@
+# 顶部的EditorConfig文件
+root = true
+
+# 应用到所有文件的通用设置
+[*]
+# 定义换行符为 LF
+end_of_line = lf
+# 是否在保存时自动格式化文件
+trim_trailing_whitespace = true
+# 是否在文件末尾插入新行
+insert_final_newline = true
+# 编码格式
+charset = utf-8
+
+# 针对Go语言文件的设置
+[*.go]
+# 定义缩进风格为2个空格
+indent_style = space
+# 定义缩进大小为2个空格
+indent_size = 2
+# 是否在保存时格式化文件，使用gofmt
+gofmt = true
+
+# 针对Markdown文件的设置
+[*.md]
+# 允许每行的最大长度
+max_line_length = 80
