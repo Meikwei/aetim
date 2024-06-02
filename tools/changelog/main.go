@@ -268,41 +268,84 @@ func findPrefixFor(message string, commits []commit) (string, bool) {
 	return "", false
 }
 
+// hasFileChanges 检查在给定的提交范围内是否有文件更改满足特定前缀。
+// commit: 用于比较的Git提交哈希。
+// prefixes: 一个字符串切片，包含要检查的文件名前缀。
+// 返回值: 如果有文件更改满足任一前缀，则返回true；否则返回false。
 func hasFileChanges(commit string, prefixes ...string) bool {
+	// 执行git diff命令，比较给定提交的前后变化，只输出文件名。
 	out, err := exec.Command("git", "diff", "--name-only", fmt.Sprintf("%s^..%s", commit, commit)).CombinedOutput()
 	if err != nil {
+		// 如果命令执行出错，记录错误并退出程序。
 		log.Fatal(err)
 	}
+	// 将命令输出（文件名列表）分割成行。
 	for _, file := range strings.Split(string(out), "\n") {
+		// 遍历每个文件名，检查是否以任一前缀开头。
 		for _, prefix := range prefixes {
 			if strings.HasPrefix(file, prefix) {
+				// 如果找到匹配的文件名，返回true。
 				return true
 			}
 		}
 	}
+	// 如果没有找到匹配的文件名，返回false。
 	return false
 }
 
+// sortAndUniq 对输入的字符串切片进行排序并去除重复项。
+// 排序是为了方便后续去重，使用了go标准库的sort.Strings函数。
+// 参数lines是待处理的字符串切片。
+// 返回值是排序后并去重的字符串切片。
 func sortAndUniq(lines []string) []string {
+	// 对输入的字符串切片进行排序
 	sort.Strings(lines)
+
+	// 初始化一个空的字符串切片out，容量设置为lines的长度，以减少内存重新分配。
 	out := make([]string, 0, len(lines))
+
+	// last用于记录上一个处理的字符串，初始化为空字符串。
 	last := ""
+
+	// 遍历排序后的字符串切片lines。
 	for _, s := range lines {
+		// 如果当前字符串s与上一个处理的字符串last相同，则跳过，不加入到out中。
 		if last == s {
 			continue
 		}
+
+		// 更新last为当前字符串s，准备下一次比较。
 		last = s
+
+		// 将不重复的字符串s加入到out中。
 		out = append(out, s)
 	}
+
+	// 返回处理后的字符串切片out。
 	return out
 }
 
+// upstreamLinkify 将给定的行文本转换为包含上游链接的格式。
+// 如果行文本包含符合上游Kube或上游Repo模式的字符串，则函数会根据模式格式化并返回一个包含链接的字符串。
+// 如果行文本不匹配任何模式，则原样返回该行文本。
+// 参数:
+//
+//	line - 待处理的文本行。
+//
+// 返回值:
+//
+//	处理后的文本行，如果匹配了模式，则包含相应的链接格式。
 func upstreamLinkify(line string) string {
+	// 尝试匹配上游Kube的模式
 	if m := upstreamKube.FindStringSubmatch(line); len(m) > 0 {
+		// 格式化并返回匹配到的行，生成的链接格式为: UPSTREAM: [#<issue编号>](https://github.com/openimsdk/open-im-server/pull/<issue编号>):<标题>
 		return fmt.Sprintf("UPSTREAM: [#%s](https://github.com/openimsdk/open-im-server/pull/%s):%s", m[1], m[1], m[2])
 	}
+	// 尝试匹配上游Repo的模式
 	if m := upstreamRepo.FindStringSubmatch(line); len(m) > 0 {
+		// 格式化并返回匹配到的行，生成的链接格式为: UPSTREAM: [<repo名称>#<issue编号>](https://github.com/<repo名称>/pull/<issue编号>):<标题>
 		return fmt.Sprintf("UPSTREAM: [%s#%s](https://github.com/%s/pull/%s):%s", m[1], m[2], m[1], m[2], m[3])
 	}
+	// 如果没有匹配到任何模式，则原样返回输入的行文本
 	return line
 }
